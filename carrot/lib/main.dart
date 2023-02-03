@@ -1,14 +1,16 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:carrot_flutter/geolocation.dart';
+
+final InAppLocalhostServer localhostServer = InAppLocalhostServer();
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await localhostServer.start();
 
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
     statusBarBrightness: Brightness.dark,
@@ -27,8 +29,6 @@ class MyApp extends StatefulWidget {
 
 class MyAppState extends State<MyApp> {
   final GlobalKey webViewKey = GlobalKey();
-  List<XFile>? _imageFileList;
-  final ImagePicker _picker = ImagePicker();
   
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -36,29 +36,12 @@ class MyAppState extends State<MyApp> {
     javaScriptEnabled: true,
     supportZoom: false,
   );
-  PullToRefreshController? pullToRefreshController;
-  PullToRefreshSettings pullToRefreshSettings = PullToRefreshSettings(
-    color: Colors.black,
-  );
-  bool pullToRefreshEnabled = true;
+
   bool _canPop = false;
+
   @override
   void initState() {
     super.initState();
-
-    pullToRefreshController = kIsWeb
-        ? null
-        : PullToRefreshController(
-            settings: pullToRefreshSettings,
-            onRefresh: () async {
-              if (defaultTargetPlatform == TargetPlatform.android) {
-                webViewController?.reload();
-              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-                webViewController?.loadUrl(urlRequest:
-                  URLRequest(url: await webViewController?.getUrl()));
-              }
-            }
-          );
   }
 
   @override
@@ -68,6 +51,9 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+
+
+
     Future<bool> onWillPop() async {
       if (_canPop) {
         return true;
@@ -112,20 +98,18 @@ class MyAppState extends State<MyApp> {
       onWillPop: onWillPop,
       child: Builder(
           builder: (BuildContext context) {
-            return InAppWebView(
-                key: webViewKey,
-                initialUrlRequest:
-                URLRequest(url: WebUri("https://app.bunnyscarrot.com")),
-                initialSettings: settings,
-                pullToRefreshController: pullToRefreshController,
-                onWebViewCreated: (controller) {
-                  webViewController = controller;
-                },
-                onLoadStop: (controller, url) {
-                  pullToRefreshController?.endRefreshing();
-                },
-                onGeolocationPermissionsShowPrompt: (
-                    InAppWebViewController controller, String origin) async {
+            return Scaffold(
+              resizeToAvoidBottomInset: true,
+              body: InAppWebView(
+                  key: webViewKey,
+                  initialUrlRequest:
+                  URLRequest(url: WebUri("https://app.bunnyscarrot.com")),
+                  initialSettings: settings,
+                  onWebViewCreated: (controller) {
+                    webViewController = controller;
+                  },
+                  onGeolocationPermissionsShowPrompt: (
+                      InAppWebViewController controller, String origin) async {
                     final result = await getPermission();
 
                     if (result == 'always') {
@@ -152,7 +136,8 @@ class MyAppState extends State<MyApp> {
                       return null;
                     }
                   }
-                );
+              )
+            );
           }
         )
       );
